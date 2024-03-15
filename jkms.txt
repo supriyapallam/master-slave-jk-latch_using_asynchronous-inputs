@@ -1,0 +1,77 @@
+//Design Code
+module jk_latch(output reg q,output wire qbar,input j,k,clk);
+  always@(clk)
+    begin
+      if(clk==1'b1)
+        begin
+          case({j,k})
+            2'b00: q=q;
+            2'b01: q=1'b0;
+            2'b10: q=1'b1;
+            2'b11: q=~q;
+            default: q=1'bx;
+          endcase
+        end
+      else
+        begin
+          q=q;
+        end
+    end
+  assign qbar=~q;
+endmodule
+
+module master_slave_jklatch(output wire q,qbar,input j,k,clk,pre,clr);
+  wire qm,qmbar;
+  wire q1;
+  assign q1=q;
+  jk_latch master(qm,qmbar,j,k,clk);
+  jk_latch slave(q1,qbar,qm,qmbar,~clk);
+  assign q = pre ? 1'b1	: (clr ? 1'b0 : q1);
+  assign qbar=~q;
+endmodule
+
+//Test Bench Code
+module tb();
+  wire a,qbar;
+  reg j,k,clk,pre,clr;
+  master_slave_jklatch DUT(q,qbar,j,k,clk,pre,clr);
+  
+  initial
+    begin
+      clk=1'b0;
+      forever #10 clk=~clk;
+    end
+  
+  
+  initial
+    begin
+      pre=1'b1;
+      #20;
+    
+      pre=1'b0;
+     
+      clr=1'b0;
+      #10;
+      clr=1'b1;
+      j=1'b0; k=1'b1;
+      #30;
+      j=1'b1; k=1'b0;
+      #20;
+      j=1'b1; k=1'b1;
+      #20;
+       $finish;
+    end
+  
+  initial
+    begin
+      $timeformat(-9,0,"ns",10);
+      $monitor("time=%0t,clk=%0b,pre=%b,clr=%b,j=%0b,k=%0b,q=%0b,qbar=%0b",$time,clk,pre,clr,j,k,q,qbar);
+    end
+  
+  initial
+    begin
+      $dumpfile("test.vcd");
+      $dumpvars(1);
+    end
+  
+endmodule
